@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>AI Arbitrage Demo</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body {
+    background: #0f172a;
+    color: white;
+    font-family: Arial;
+    text-align: center;
+}
+.container {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 20px;
+}
+.card {
+    background: #1e293b;
+    padding: 20px;
+    border-radius: 10px;
+    width: 30%;
+}
+button {
+    padding: 10px 20px;
+    margin: 10px;
+    border: none;
+    border-radius: 5px;
+    background: #22c55e;
+    color: white;
+    cursor: pointer;
+}
+button.stop {
+    background: #ef4444;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🤖 AI 套利模拟平台</h1>
+
+<div class="container">
+    <div class="card">
+        <h2>交易所 A</h2>
+        <h3 id="priceA">0</h3>
+    </div>
+
+    <div class="card">
+        <h2>交易所 B</h2>
+        <h3 id="priceB">0</h3>
+    </div>
+
+    <div class="card">
+        <h2>系统状态</h2>
+        <h3 id="profit">利润: 0</h3>
+        <h3 id="spread">价差: 0</h3>
+    </div>
+</div>
+
+<button onclick="start()">启动套利</button>
+<button class="stop" onclick="stop()">停止</button>
+
+<canvas id="profitChart" width="800" height="300"></canvas>
+
+<script>
+let priceA = 100;
+let priceB = 100;
+let profit = 0;
+let interval;
+let history = [];
+
+const ctx = document.getElementById('profitChart').getContext('2d');
+const chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: [],
+        datasets: [{
+            label: '利润曲线',
+            data: [],
+            borderColor: '#22c55e',
+            fill: false
+        }]
+    }
+});
+
+function simulatePrices() {
+    priceA += (Math.random() - 0.5) * 2;
+    priceB += (Math.random() - 0.5) * 2;
+
+    // 人工制造价差
+    if (Math.random() > 0.7) {
+        priceB += Math.random() * 5;
+    }
+
+    document.getElementById("priceA").innerText = priceA.toFixed(2);
+    document.getElementById("priceB").innerText = priceB.toFixed(2);
+
+    let spread = priceB - priceA;
+    document.getElementById("spread").innerText = "价差: " + spread.toFixed(2);
+
+    if (spread > 2) {
+        profit += spread;
+    }
+
+    document.getElementById("profit").innerText = "利润: " + profit.toFixed(2);
+
+    history.push(profit);
+    chart.data.labels.push(history.length);
+    chart.data.datasets[0].data = history;
+    chart.update();
+}
+
+function start() {
+    if (!interval) {
+        interval = setInterval(simulatePrices, 1000);
+    }
+}
+
+function stop() {
+    clearInterval(interval);
+    interval = null;
+}
+</script>
+
+</body>
+</html>
