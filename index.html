@@ -2,82 +2,127 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>AI Arbitrage Demo</title>
+<title>AI Arbitrage Terminal</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 body {
-    background: #0f172a;
-    color: white;
+    background: #0b0f1a;
+    color: #e2e8f0;
     font-family: Arial;
-    text-align: center;
+    margin: 0;
 }
-.container {
+
+.header {
+    background: #111827;
+    padding: 15px;
+    font-size: 20px;
+    font-weight: bold;
+    text-align: center;
+    border-bottom: 1px solid #1f2937;
+}
+
+.dashboard {
     display: flex;
     justify-content: space-around;
-    margin-top: 20px;
-}
-.card {
-    background: #1e293b;
     padding: 20px;
-    border-radius: 10px;
-    width: 30%;
 }
-button {
-    padding: 10px 20px;
+
+.card {
+    background: #111827;
+    padding: 15px;
+    border-radius: 8px;
+    width: 23%;
+    text-align: center;
+}
+
+.value {
+    font-size: 22px;
+    margin-top: 10px;
+}
+
+.green { color: #22c55e; }
+.red { color: #ef4444; }
+
+.controls {
+    text-align: center;
     margin: 10px;
+}
+
+button {
+    padding: 8px 18px;
+    margin: 5px;
     border: none;
     border-radius: 5px;
-    background: #22c55e;
-    color: white;
     cursor: pointer;
+    font-weight: bold;
 }
-button.stop {
-    background: #ef4444;
+
+.start { background: #22c55e; color: black; }
+.stop { background: #ef4444; color: white; }
+
+.trade-log {
+    background: #111827;
+    margin: 20px;
+    padding: 10px;
+    height: 120px;
+    overflow-y: auto;
+    font-size: 12px;
+}
+canvas {
+    background: #111827;
+    margin: 20px;
+    border-radius: 8px;
 }
 </style>
 </head>
 
 <body>
 
-<h1>🤖 AI 套利模拟平台</h1>
+<div class="header">🤖 AI Arbitrage Trading Terminal</div>
 
-<div class="container">
+<div class="dashboard">
     <div class="card">
-        <h2>交易所 A</h2>
-        <h3 id="priceA">0</h3>
+        交易所A
+        <div class="value" id="priceA">0</div>
     </div>
-
     <div class="card">
-        <h2>交易所 B</h2>
-        <h3 id="priceB">0</h3>
+        交易所B
+        <div class="value" id="priceB">0</div>
     </div>
-
     <div class="card">
-        <h2>系统状态</h2>
-        <h3 id="profit">利润: 0</h3>
-        <h3 id="spread">价差: 0</h3>
+        账户余额
+        <div class="value green" id="balance">10000</div>
+    </div>
+    <div class="card">
+        总利润
+        <div class="value green" id="profit">0</div>
     </div>
 </div>
 
-<button onclick="start()">启动套利</button>
-<button class="stop" onclick="stop()">停止</button>
+<div class="controls">
+    <button class="start" onclick="start()">启动</button>
+    <button class="stop" onclick="stop()">停止</button>
+</div>
 
-<canvas id="profitChart" width="800" height="300"></canvas>
+<canvas id="chart" width="900" height="300"></canvas>
+
+<div class="trade-log" id="log"></div>
 
 <script>
 let priceA = 100;
 let priceB = 100;
+let balance = 10000;
 let profit = 0;
 let interval;
 let history = [];
 
-const ctx = document.getElementById('profitChart').getContext('2d');
+const ctx = document.getElementById('chart').getContext('2d');
 const chart = new Chart(ctx, {
     type: 'line',
     data: {
         labels: [],
         datasets: [{
-            label: '利润曲线',
+            label: 'Profit Curve',
             data: [],
             borderColor: '#22c55e',
             fill: false
@@ -85,26 +130,34 @@ const chart = new Chart(ctx, {
     }
 });
 
-function simulatePrices() {
+function logTrade(text) {
+    const log = document.getElementById("log");
+    log.innerHTML += text + "<br>";
+    log.scrollTop = log.scrollHeight;
+}
+
+function simulate() {
     priceA += (Math.random() - 0.5) * 2;
     priceB += (Math.random() - 0.5) * 2;
 
-    // 人工制造价差
     if (Math.random() > 0.7) {
-        priceB += Math.random() * 5;
+        priceB += Math.random() * 4;
     }
 
     document.getElementById("priceA").innerText = priceA.toFixed(2);
     document.getElementById("priceB").innerText = priceB.toFixed(2);
 
     let spread = priceB - priceA;
-    document.getElementById("spread").innerText = "价差: " + spread.toFixed(2);
 
     if (spread > 2) {
-        profit += spread;
+        let tradeProfit = spread * 1;
+        profit += tradeProfit;
+        balance += tradeProfit;
+        logTrade("套利成功 + " + tradeProfit.toFixed(2));
     }
 
-    document.getElementById("profit").innerText = "利润: " + profit.toFixed(2);
+    document.getElementById("profit").innerText = profit.toFixed(2);
+    document.getElementById("balance").innerText = balance.toFixed(2);
 
     history.push(profit);
     chart.data.labels.push(history.length);
@@ -114,7 +167,7 @@ function simulatePrices() {
 
 function start() {
     if (!interval) {
-        interval = setInterval(simulatePrices, 1000);
+        interval = setInterval(simulate, 1000);
     }
 }
 
