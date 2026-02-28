@@ -2,179 +2,195 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>AI Arbitrage Terminal</title>
+<title>Global Asset Management Empire</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-body {
-    background: #0b0f1a;
-    color: #e2e8f0;
-    font-family: Arial;
-    margin: 0;
+body{
+    margin:0;
+    background:#0b0f1a;
+    color:#00ffcc;
+    font-family:Arial;
 }
-
-.header {
-    background: #111827;
-    padding: 15px;
-    font-size: 20px;
-    font-weight: bold;
-    text-align: center;
-    border-bottom: 1px solid #1f2937;
+header{
+    background:#111;
+    padding:15px;
+    font-size:22px;
+    text-align:center;
+    font-weight:bold;
 }
-
-.dashboard {
-    display: flex;
-    justify-content: space-around;
-    padding: 20px;
+.container{
+    display:grid;
+    grid-template-columns:300px 1fr;
+    height:90vh;
 }
-
-.card {
-    background: #111827;
-    padding: 15px;
-    border-radius: 8px;
-    width: 23%;
-    text-align: center;
+.sidebar{
+    background:#111827;
+    padding:20px;
 }
-
-.value {
-    font-size: 22px;
-    margin-top: 10px;
+.main{
+    padding:20px;
 }
-
-.green { color: #22c55e; }
-.red { color: #ef4444; }
-
-.controls {
-    text-align: center;
-    margin: 10px;
+button{
+    width:100%;
+    padding:10px;
+    margin-top:10px;
+    background:#00ffcc;
+    border:none;
+    font-weight:bold;
+    cursor:pointer;
 }
-
-button {
-    padding: 8px 18px;
-    margin: 5px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-weight: bold;
+input{
+    width:100%;
 }
-
-.start { background: #22c55e; color: black; }
-.stop { background: #ef4444; color: white; }
-
-.trade-log {
-    background: #111827;
-    margin: 20px;
-    padding: 10px;
-    height: 120px;
-    overflow-y: auto;
-    font-size: 12px;
+.card{
+    background:#111827;
+    padding:15px;
+    margin-bottom:15px;
 }
-canvas {
-    background: #111827;
-    margin: 20px;
-    border-radius: 8px;
+canvas{
+    background:#111;
 }
 </style>
 </head>
-
 <body>
 
-<div class="header">🤖 AI Arbitrage Trading Terminal</div>
+<header>
+Global Asset Management Empire Simulation
+</header>
 
-<div class="dashboard">
-    <div class="card">
-        交易所A
-        <div class="value" id="priceA">0</div>
-    </div>
-    <div class="card">
-        交易所B
-        <div class="value" id="priceB">0</div>
-    </div>
-    <div class="card">
-        账户余额
-        <div class="value green" id="balance">10000</div>
-    </div>
-    <div class="card">
-        总利润
-        <div class="value green" id="profit">0</div>
-    </div>
+<div class="container">
+
+<div class="sidebar">
+
+<h3>控制面板</h3>
+
+<label>ETF费率 (%)</label>
+<input type="range" min="0.03" max="0.5" step="0.01" id="fee" value="0.1">
+<span id="feeDisplay">0.1%</span>
+
+<label>市场排名 (1=最好)</label>
+<input type="range" min="1" max="10" step="1" id="rank" value="3">
+<span id="rankDisplay">3</span>
+
+<label>市场收益率 (%)</label>
+<input type="range" min="-5" max="10" step="0.1" id="return" value="5">
+<span id="returnDisplay">5%</span>
+
+<button onclick="start()">启动帝国</button>
+
 </div>
 
-<div class="controls">
-    <button class="start" onclick="start()">启动</button>
-    <button class="stop" onclick="stop()">停止</button>
+<div class="main">
+
+<div class="card">
+<h3>集团总AUM（十亿美元）</h3>
+<canvas id="aumChart"></canvas>
 </div>
 
-<canvas id="chart" width="900" height="300"></canvas>
+<div class="card">
+<h3>集团利润（十亿美元）</h3>
+<canvas id="profitChart"></canvas>
+</div>
 
-<div class="trade-log" id="log"></div>
+<div class="card">
+<h3>市场份额</h3>
+<canvas id="shareChart"></canvas>
+</div>
+
+</div>
+
+</div>
 
 <script>
-let priceA = 100;
-let priceB = 100;
-let balance = 10000;
-let profit = 0;
-let interval;
-let history = [];
 
-const ctx = document.getElementById('chart').getContext('2d');
-const chart = new Chart(ctx, {
-    type: 'line',
-    data: {
-        labels: [],
-        datasets: [{
-            label: 'Profit Curve',
-            data: [],
-            borderColor: '#22c55e',
-            fill: false
-        }]
-    }
+// 初始AUM（十亿美元）
+let AUM = 2000;
+let pensionAUM = 3000;
+let mutualAUM = 1000;
+
+let aumHistory = [];
+let profitHistory = [];
+let shareHistory = [];
+
+let running = false;
+
+const aumChart = new Chart(document.getElementById('aumChart'),{
+type:'line',
+data:{labels:[],datasets:[{label:'AUM',data:[]}]}
 });
 
-function logTrade(text) {
-    const log = document.getElementById("log");
-    log.innerHTML += text + "<br>";
-    log.scrollTop = log.scrollHeight;
+const profitChart = new Chart(document.getElementById('profitChart'),{
+type:'line',
+data:{labels:[],datasets:[{label:'Profit',data:[]}]}
+});
+
+const shareChart = new Chart(document.getElementById('shareChart'),{
+type:'line',
+data:{labels:[],datasets:[{label:'Market Share',data:[]}]}
+});
+
+function netFlow(fee, rank){
+    return (0.02 - fee/100)*0.5 + (1/rank)*0.3;
 }
 
-function simulate() {
-    priceA += (Math.random() - 0.5) * 2;
-    priceB += (Math.random() - 0.5) * 2;
+function complianceCost(totalAUM){
+    return totalAUM * 0.0005;
+}
 
-    if (Math.random() > 0.7) {
-        priceB += Math.random() * 4;
+function update(){
+
+    let fee = parseFloat(document.getElementById('fee').value);
+    let rank = parseInt(document.getElementById('rank').value);
+    let marketReturn = parseFloat(document.getElementById('return').value)/100;
+
+    document.getElementById('feeDisplay').innerText = fee + "%";
+    document.getElementById('rankDisplay').innerText = rank;
+    document.getElementById('returnDisplay').innerText = marketReturn*100 + "%";
+
+    let totalAUM = AUM + pensionAUM + mutualAUM;
+
+    let flow = netFlow(fee, rank) * totalAUM;
+
+    // 更新AUM
+    AUM = AUM*(1+marketReturn) + flow*0.5;
+    pensionAUM = pensionAUM*(1+marketReturn*0.6) + flow*0.3;
+    mutualAUM = mutualAUM*(1+marketReturn*0.8) + flow*0.2;
+
+    totalAUM = AUM + pensionAUM + mutualAUM;
+
+    // 利润
+    let managementFee = totalAUM * (fee/100);
+    let cost = complianceCost(totalAUM);
+    let profit = managementFee - cost;
+
+    // 市场份额模拟
+    let marketShare = (11-rank)/55;
+
+    aumHistory.push(totalAUM);
+    profitHistory.push(profit);
+    shareHistory.push(marketShare);
+
+    aumChart.data.labels.push(aumHistory.length);
+    aumChart.data.datasets[0].data = aumHistory;
+    aumChart.update();
+
+    profitChart.data.labels.push(profitHistory.length);
+    profitChart.data.datasets[0].data = profitHistory;
+    profitChart.update();
+
+    shareChart.data.labels.push(shareHistory.length);
+    shareChart.data.datasets[0].data = shareHistory;
+    shareChart.update();
+
+}
+
+function start(){
+    if(!running){
+        running = true;
+        setInterval(update,1000);
     }
-
-    document.getElementById("priceA").innerText = priceA.toFixed(2);
-    document.getElementById("priceB").innerText = priceB.toFixed(2);
-
-    let spread = priceB - priceA;
-
-    if (spread > 2) {
-        let tradeProfit = spread * 1;
-        profit += tradeProfit;
-        balance += tradeProfit;
-        logTrade("套利成功 + " + tradeProfit.toFixed(2));
-    }
-
-    document.getElementById("profit").innerText = profit.toFixed(2);
-    document.getElementById("balance").innerText = balance.toFixed(2);
-
-    history.push(profit);
-    chart.data.labels.push(history.length);
-    chart.data.datasets[0].data = history;
-    chart.update();
 }
 
-function start() {
-    if (!interval) {
-        interval = setInterval(simulate, 1000);
-    }
-}
-
-function stop() {
-    clearInterval(interval);
-    interval = null;
-}
 </script>
 
 </body>
